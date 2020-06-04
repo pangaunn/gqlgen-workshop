@@ -1,6 +1,5 @@
-- init go with `go mod init`
-- install gqlgen `go get github.com/99designs/gqlgen`
-- init gqlgen `gqlgen init`
-- delete graph folder
-- update graphql.yml point schema file to `schema.graphql`
-- init gqlgen again `gqlgen init`
+How to run test
+
+- `go test` will run every test case.
+- `go test -run="TestQueryHuman"` will run every test case in TestQueryHuman.
+- `go test -run="TestQueryHuman\luke"` will run only luke case.
