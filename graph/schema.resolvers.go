@@ -12,7 +12,35 @@ import (
 	"github.com/pangaunn/gqlgen-workshop/graph/model"
 )
 
-func (r *mutationResolver) CreateReview(ctx context.Context, episode model.Episode, review model.ReviewInput) (*model.Review, error) {
+func (r *droidResolver) Friends(ctx context.Context, obj *model.Droid) ([]model.Character, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *droidResolver) FriendsConnection(ctx context.Context, obj *model.Droid, first *int, after *string) (*model.FriendsConnection, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *friendsConnectionResolver) Edges(ctx context.Context, obj *model.FriendsConnection) ([]*model.FriendsEdge, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *friendsConnectionResolver) Friends(ctx context.Context, obj *model.FriendsConnection) ([]model.Character, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *humanResolver) Friends(ctx context.Context, obj *model.Human) ([]model.Character, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *humanResolver) FriendsConnection(ctx context.Context, obj *model.Human, first *int, after *string) (*model.FriendsConnection, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *humanResolver) Starships(ctx context.Context, obj *model.Human) ([]*model.Starship, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) CreateReview(ctx context.Context, episode model.Episode, review model.Review) (*model.Review, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -44,11 +72,33 @@ func (r *queryResolver) Starship(ctx context.Context, id string) (*model.Starshi
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *starshipResolver) Length(ctx context.Context, obj *model.Starship, unit *model.LengthUnit) (float64, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+// Droid returns generated.DroidResolver implementation.
+func (r *Resolver) Droid() generated.DroidResolver { return &droidResolver{r} }
+
+// FriendsConnection returns generated.FriendsConnectionResolver implementation.
+func (r *Resolver) FriendsConnection() generated.FriendsConnectionResolver {
+	return &friendsConnectionResolver{r}
+}
+
+// Human returns generated.HumanResolver implementation.
+func (r *Resolver) Human() generated.HumanResolver { return &humanResolver{r} }
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// Starship returns generated.StarshipResolver implementation.
+func (r *Resolver) Starship() generated.StarshipResolver { return &starshipResolver{r} }
+
+type droidResolver struct{ *Resolver }
+type friendsConnectionResolver struct{ *Resolver }
+type humanResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type starshipResolver struct{ *Resolver }
