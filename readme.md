@@ -1,5 +1,6 @@
 - init go with `go mod init`
+- install gqlgen `go get github.com/99designs/gqlgen`
 - init gqlgen `gqlgen init`
 - delete graph folder
 - update graphql.yml point schema file to `schema.graphql`
-- generate resolver `gqlgen generate`
+- init gqlgen again `gqlgen init`
