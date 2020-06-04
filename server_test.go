@@ -25,6 +25,22 @@ func TestMain(m *testing.M) {
 }
 
 func TestQueryStarShip(t *testing.T) {
+	t.Run("X-Wing", func(t *testing.T) {
+		var resp struct {
+			Starship struct {
+				Name string
+			}
+		}
+		c.MustPost(`
+		{ 
+			starship(id:"3001") {
+				name
+			}
+		}`, &resp)
+
+		require.Equal(t, "X-Wing", resp.Starship.Name)
+	})
+
 	t.Run("X-Wing default length", func(t *testing.T) {
 		var resp struct {
 			Starship struct {
