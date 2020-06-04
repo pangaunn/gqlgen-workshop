@@ -37,8 +37,12 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Droid() DroidResolver
+	FriendsConnection() FriendsConnectionResolver
+	Human() HumanResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Starship() StarshipResolver
 }
 
 type DirectiveRoot struct {
@@ -70,7 +74,7 @@ type ComplexityRoot struct {
 		AppearsIn         func(childComplexity int) int
 		Friends           func(childComplexity int) int
 		FriendsConnection func(childComplexity int, first *int, after *string) int
-		Height            func(childComplexity int, unit *model.LengthUnit) int
+		Height            func(childComplexity int, unit model.LengthUnit) int
 		ID                func(childComplexity int) int
 		Mass              func(childComplexity int) int
 		Name              func(childComplexity int) int
@@ -78,7 +82,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateReview func(childComplexity int, episode model.Episode, review model.ReviewInput) int
+		CreateReview func(childComplexity int, episode model.Episode, review model.Review) int
 	}
 
 	PageInfo struct {
@@ -111,8 +115,22 @@ type ComplexityRoot struct {
 	}
 }
 
+type DroidResolver interface {
+	Friends(ctx context.Context, obj *model.Droid) ([]model.Character, error)
+	FriendsConnection(ctx context.Context, obj *model.Droid, first *int, after *string) (*model.FriendsConnection, error)
+}
+type FriendsConnectionResolver interface {
+	Edges(ctx context.Context, obj *model.FriendsConnection) ([]*model.FriendsEdge, error)
+	Friends(ctx context.Context, obj *model.FriendsConnection) ([]model.Character, error)
+}
+type HumanResolver interface {
+	Friends(ctx context.Context, obj *model.Human) ([]model.Character, error)
+	FriendsConnection(ctx context.Context, obj *model.Human, first *int, after *string) (*model.FriendsConnection, error)
+
+	Starships(ctx context.Context, obj *model.Human) ([]*model.Starship, error)
+}
 type MutationResolver interface {
-	CreateReview(ctx context.Context, episode model.Episode, review model.ReviewInput) (*model.Review, error)
+	CreateReview(ctx context.Context, episode model.Episode, review model.Review) (*model.Review, error)
 }
 type QueryResolver interface {
 	Hero(ctx context.Context, episode *model.Episode) (model.Character, error)
@@ -122,6 +140,9 @@ type QueryResolver interface {
 	Droid(ctx context.Context, id string) (*model.Droid, error)
 	Human(ctx context.Context, id string) (*model.Human, error)
 	Starship(ctx context.Context, id string) (*model.Starship, error)
+}
+type StarshipResolver interface {
+	Length(ctx context.Context, obj *model.Starship, unit *model.LengthUnit) (float64, error)
 }
 
 type executableSchema struct {
@@ -264,7 +285,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Human.Height(childComplexity, args["unit"].(*model.LengthUnit)), true
+		return e.complexity.Human.Height(childComplexity, args["unit"].(model.LengthUnit)), true
 
 	case "Human.id":
 		if e.complexity.Human.ID == nil {
@@ -304,7 +325,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateReview(childComplexity, args["episode"].(model.Episode), args["review"].(model.ReviewInput)), true
+		return e.complexity.Mutation.CreateReview(childComplexity, args["episode"].(model.Episode), args["review"].(model.Review)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -716,9 +737,9 @@ func (ec *executionContext) field_Human_friendsConnection_args(ctx context.Conte
 func (ec *executionContext) field_Human_height_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.LengthUnit
+	var arg0 model.LengthUnit
 	if tmp, ok := rawArgs["unit"]; ok {
-		arg0, err = ec.unmarshalOLengthUnit2ᚖgithubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐLengthUnit(ctx, tmp)
+		arg0, err = ec.unmarshalOLengthUnit2githubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐLengthUnit(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -738,9 +759,9 @@ func (ec *executionContext) field_Mutation_createReview_args(ctx context.Context
 		}
 	}
 	args["episode"] = arg0
-	var arg1 model.ReviewInput
+	var arg1 model.Review
 	if tmp, ok := rawArgs["review"]; ok {
-		arg1, err = ec.unmarshalNReviewInput2githubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐReviewInput(ctx, tmp)
+		arg1, err = ec.unmarshalNReviewInput2githubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐReview(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -998,13 +1019,13 @@ func (ec *executionContext) _Droid_friends(ctx context.Context, field graphql.Co
 		Object:   "Droid",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Friends, nil
+		return ec.resolvers.Droid().Friends(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1029,7 +1050,7 @@ func (ec *executionContext) _Droid_friendsConnection(ctx context.Context, field 
 		Object:   "Droid",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1042,7 +1063,7 @@ func (ec *executionContext) _Droid_friendsConnection(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.FriendsConnection, nil
+		return ec.resolvers.Droid().FriendsConnection(rctx, obj, args["first"].(*int), args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1119,9 +1140,9 @@ func (ec *executionContext) _Droid_primaryFunction(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _FriendsConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.FriendsConnection) (ret graphql.Marshaler) {
@@ -1135,13 +1156,13 @@ func (ec *executionContext) _FriendsConnection_totalCount(ctx context.Context, f
 		Object:   "FriendsConnection",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TotalCount, nil
+		return obj.TotalCount(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1169,13 +1190,13 @@ func (ec *executionContext) _FriendsConnection_edges(ctx context.Context, field 
 		Object:   "FriendsConnection",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Edges, nil
+		return ec.resolvers.FriendsConnection().Edges(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1200,13 +1221,13 @@ func (ec *executionContext) _FriendsConnection_friends(ctx context.Context, fiel
 		Object:   "FriendsConnection",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Friends, nil
+		return ec.resolvers.FriendsConnection().Friends(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1231,13 +1252,13 @@ func (ec *executionContext) _FriendsConnection_pageInfo(ctx context.Context, fie
 		Object:   "FriendsConnection",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.PageInfo, nil
+		return obj.PageInfo(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1249,9 +1270,9 @@ func (ec *executionContext) _FriendsConnection_pageInfo(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.PageInfo)
+	res := resTmp.(model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2githubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _FriendsEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.FriendsEdge) (ret graphql.Marshaler) {
@@ -1398,7 +1419,7 @@ func (ec *executionContext) _Human_height(ctx context.Context, field graphql.Col
 		Object:   "Human",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1411,7 +1432,7 @@ func (ec *executionContext) _Human_height(ctx context.Context, field graphql.Col
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Height, nil
+		return obj.Height(args["unit"].(model.LengthUnit)), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1454,9 +1475,9 @@ func (ec *executionContext) _Human_mass(ctx context.Context, field graphql.Colle
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Human_friends(ctx context.Context, field graphql.CollectedField, obj *model.Human) (ret graphql.Marshaler) {
@@ -1470,13 +1491,13 @@ func (ec *executionContext) _Human_friends(ctx context.Context, field graphql.Co
 		Object:   "Human",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Friends, nil
+		return ec.resolvers.Human().Friends(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1501,7 +1522,7 @@ func (ec *executionContext) _Human_friendsConnection(ctx context.Context, field 
 		Object:   "Human",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1514,7 +1535,7 @@ func (ec *executionContext) _Human_friendsConnection(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.FriendsConnection, nil
+		return ec.resolvers.Human().FriendsConnection(rctx, obj, args["first"].(*int), args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1576,13 +1597,13 @@ func (ec *executionContext) _Human_starships(ctx context.Context, field graphql.
 		Object:   "Human",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Starships, nil
+		return ec.resolvers.Human().Starships(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1620,7 +1641,7 @@ func (ec *executionContext) _Mutation_createReview(ctx context.Context, field gr
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateReview(rctx, args["episode"].(model.Episode), args["review"].(model.ReviewInput))
+		return ec.resolvers.Mutation().CreateReview(rctx, args["episode"].(model.Episode), args["review"].(model.Review))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2168,9 +2189,9 @@ func (ec *executionContext) _Review_time(ctx context.Context, field graphql.Coll
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*time.Time)
+	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+	return ec.marshalOTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Starship_id(ctx context.Context, field graphql.CollectedField, obj *model.Starship) (ret graphql.Marshaler) {
@@ -2252,7 +2273,7 @@ func (ec *executionContext) _Starship_length(ctx context.Context, field graphql.
 		Object:   "Starship",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2265,7 +2286,7 @@ func (ec *executionContext) _Starship_length(ctx context.Context, field graphql.
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Length, nil
+		return ec.resolvers.Starship().Length(rctx, obj, args["unit"].(*model.LengthUnit))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3371,8 +3392,8 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputReviewInput(ctx context.Context, obj interface{}) (model.ReviewInput, error) {
-	var it model.ReviewInput
+func (ec *executionContext) unmarshalInputReviewInput(ctx context.Context, obj interface{}) (model.Review, error) {
+	var it model.Review
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -3391,7 +3412,7 @@ func (ec *executionContext) unmarshalInputReviewInput(ctx context.Context, obj i
 			}
 		case "time":
 			var err error
-			it.Time, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			it.Time, err = ec.unmarshalOTime2timeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3476,24 +3497,42 @@ func (ec *executionContext) _Droid(ctx context.Context, sel ast.SelectionSet, ob
 		case "id":
 			out.Values[i] = ec._Droid_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._Droid_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "friends":
-			out.Values[i] = ec._Droid_friends(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Droid_friends(ctx, field, obj)
+				return res
+			})
 		case "friendsConnection":
-			out.Values[i] = ec._Droid_friendsConnection(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Droid_friendsConnection(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "appearsIn":
 			out.Values[i] = ec._Droid_appearsIn(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "primaryFunction":
 			out.Values[i] = ec._Droid_primaryFunction(ctx, field, obj)
@@ -3522,16 +3561,34 @@ func (ec *executionContext) _FriendsConnection(ctx context.Context, sel ast.Sele
 		case "totalCount":
 			out.Values[i] = ec._FriendsConnection_totalCount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "edges":
-			out.Values[i] = ec._FriendsConnection_edges(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._FriendsConnection_edges(ctx, field, obj)
+				return res
+			})
 		case "friends":
-			out.Values[i] = ec._FriendsConnection_friends(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._FriendsConnection_friends(ctx, field, obj)
+				return res
+			})
 		case "pageInfo":
 			out.Values[i] = ec._FriendsConnection_pageInfo(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -3587,34 +3644,61 @@ func (ec *executionContext) _Human(ctx context.Context, sel ast.SelectionSet, ob
 		case "id":
 			out.Values[i] = ec._Human_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._Human_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "height":
 			out.Values[i] = ec._Human_height(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "mass":
 			out.Values[i] = ec._Human_mass(ctx, field, obj)
 		case "friends":
-			out.Values[i] = ec._Human_friends(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Human_friends(ctx, field, obj)
+				return res
+			})
 		case "friendsConnection":
-			out.Values[i] = ec._Human_friendsConnection(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Human_friendsConnection(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "appearsIn":
 			out.Values[i] = ec._Human_appearsIn(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "starships":
-			out.Values[i] = ec._Human_starships(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Human_starships(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3849,22 +3933,31 @@ func (ec *executionContext) _Starship(ctx context.Context, sel ast.SelectionSet,
 		case "id":
 			out.Values[i] = ec._Starship_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._Starship_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "length":
-			out.Values[i] = ec._Starship_length(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Starship_length(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "history":
 			out.Values[i] = ec._Starship_history(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -4344,16 +4437,6 @@ func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋpangaunnᚋgqlgenᚑ
 	return ec._PageInfo(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._PageInfo(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNReview2githubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐReview(ctx context.Context, sel ast.SelectionSet, v model.Review) graphql.Marshaler {
 	return ec._Review(ctx, sel, &v)
 }
@@ -4405,7 +4488,7 @@ func (ec *executionContext) marshalNReview2ᚖgithubᚗcomᚋpangaunnᚋgqlgen�
 	return ec._Review(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNReviewInput2githubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐReviewInput(ctx context.Context, v interface{}) (model.ReviewInput, error) {
+func (ec *executionContext) unmarshalNReviewInput2githubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐReview(ctx context.Context, v interface{}) (model.Review, error) {
 	return ec.unmarshalInputReviewInput(ctx, v)
 }
 
@@ -4821,21 +4904,6 @@ func (ec *executionContext) unmarshalOFloat2float64(ctx context.Context, v inter
 
 func (ec *executionContext) marshalOFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
 	return graphql.MarshalFloat(v)
-}
-
-func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOFloat2float64(ctx, v)
-	return &res, err
-}
-
-func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec.marshalOFloat2float64(ctx, sel, *v)
 }
 
 func (ec *executionContext) marshalOFriendsEdge2ᚕᚖgithubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐFriendsEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FriendsEdge) graphql.Marshaler {
