@@ -34,6 +34,10 @@ func (r *friendsConnectionResolver) Friends(ctx context.Context, obj *model.Frie
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *humanResolver) Height(ctx context.Context, obj *model.Human, unit *model.LengthUnit) (float64, error) {
+	return obj.HeightMeters, nil
+}
+
 func (r *humanResolver) Friends(ctx context.Context, obj *model.Human) ([]model.Character, error) {
 	ids := obj.FriendIds
 	rr := make([]model.Character, len(ids))

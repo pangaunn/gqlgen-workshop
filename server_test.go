@@ -202,7 +202,7 @@ func TestQueryHero(t *testing.T) {
 		}
 		c.MustPost(`
 		{
-			hero {
+{			hero 
 				... on Droid {
 					name
 				}

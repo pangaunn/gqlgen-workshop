@@ -74,7 +74,7 @@ type ComplexityRoot struct {
 		AppearsIn         func(childComplexity int) int
 		Friends           func(childComplexity int) int
 		FriendsConnection func(childComplexity int, first *int, after *string) int
-		Height            func(childComplexity int, unit model.LengthUnit) int
+		Height            func(childComplexity int, unit *model.LengthUnit) int
 		ID                func(childComplexity int) int
 		Mass              func(childComplexity int) int
 		Name              func(childComplexity int) int
@@ -124,6 +124,8 @@ type FriendsConnectionResolver interface {
 	Friends(ctx context.Context, obj *model.FriendsConnection) ([]model.Character, error)
 }
 type HumanResolver interface {
+	Height(ctx context.Context, obj *model.Human, unit *model.LengthUnit) (float64, error)
+
 	Friends(ctx context.Context, obj *model.Human) ([]model.Character, error)
 	FriendsConnection(ctx context.Context, obj *model.Human, first *int, after *string) (*model.FriendsConnection, error)
 
@@ -285,7 +287,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Human.Height(childComplexity, args["unit"].(model.LengthUnit)), true
+		return e.complexity.Human.Height(childComplexity, args["unit"].(*model.LengthUnit)), true
 
 	case "Human.id":
 		if e.complexity.Human.ID == nil {
@@ -737,9 +739,9 @@ func (ec *executionContext) field_Human_friendsConnection_args(ctx context.Conte
 func (ec *executionContext) field_Human_height_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.LengthUnit
+	var arg0 *model.LengthUnit
 	if tmp, ok := rawArgs["unit"]; ok {
-		arg0, err = ec.unmarshalOLengthUnit2githubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐLengthUnit(ctx, tmp)
+		arg0, err = ec.unmarshalOLengthUnit2ᚖgithubᚗcomᚋpangaunnᚋgqlgenᚑworkshopᚋgraphᚋmodelᚐLengthUnit(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1432,7 +1434,7 @@ func (ec *executionContext) _Human_height(ctx context.Context, field graphql.Col
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Height(args["unit"].(model.LengthUnit)), nil
+		return ec.resolvers.Human().Height(rctx, obj, args["unit"].(*model.LengthUnit))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3652,10 +3654,19 @@ func (ec *executionContext) _Human(ctx context.Context, sel ast.SelectionSet, ob
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "height":
-			out.Values[i] = ec._Human_height(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Human_height(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "mass":
 			out.Values[i] = ec._Human_mass(ctx, field, obj)
 		case "friends":
