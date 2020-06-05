@@ -79,6 +79,10 @@ func (r *queryResolver) Starship(ctx context.Context, id string) (*model.Starshi
 
 func (r *starshipResolver) Length(ctx context.Context, obj *model.Starship, unit *model.LengthUnit) (float64, error) {
 	// panic(fmt.Errorf("not implemented"))
+	if unit != nil && *unit == model.LengthUnitFoot {
+		return obj.Length * 3.28084, nil
+	}
+
 	return obj.Length, nil
 }
 
