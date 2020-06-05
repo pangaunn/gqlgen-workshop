@@ -37,7 +37,14 @@ func (r *humanResolver) FriendsConnection(ctx context.Context, obj *model.Human,
 }
 
 func (r *humanResolver) Starships(ctx context.Context, obj *model.Human) ([]*model.Starship, error) {
-	panic(fmt.Errorf("not implemented"))
+	ids := obj.StarshipIds
+	rr := make([]*model.Starship, len(ids))
+	for i, id := range ids {
+		s := r.datasource.starships[id]
+		rr[i] = &s
+	}
+
+	return rr, nil
 }
 
 func (r *mutationResolver) CreateReview(ctx context.Context, episode model.Episode, review model.Review) (*model.Review, error) {
