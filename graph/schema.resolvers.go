@@ -69,7 +69,12 @@ func (r *queryResolver) Human(ctx context.Context, id string) (*model.Human, err
 }
 
 func (r *queryResolver) Starship(ctx context.Context, id string) (*model.Starship, error) {
-	panic(fmt.Errorf("not implemented"))
+	starship, found := r.datasource.starships[id]
+	if !found {
+		return nil, fmt.Errorf("not found")
+	}
+
+	return &starship, nil
 }
 
 func (r *starshipResolver) Length(ctx context.Context, obj *model.Starship, unit *model.LengthUnit) (float64, error) {
