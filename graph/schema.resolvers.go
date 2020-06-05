@@ -13,7 +13,13 @@ import (
 )
 
 func (r *droidResolver) Friends(ctx context.Context, obj *model.Droid) ([]model.Character, error) {
-	panic(fmt.Errorf("not implemented"))
+	ids := obj.CharacterFields.FriendIds
+	cc := make([]model.Character, len(ids))
+	for idx, id := range ids {
+		cc[idx] = r.datasource.humans[id]
+	}
+
+	return cc, nil
 }
 
 func (r *droidResolver) FriendsConnection(ctx context.Context, obj *model.Droid, first *int, after *string) (*model.FriendsConnection, error) {
@@ -29,7 +35,14 @@ func (r *friendsConnectionResolver) Friends(ctx context.Context, obj *model.Frie
 }
 
 func (r *humanResolver) Friends(ctx context.Context, obj *model.Human) ([]model.Character, error) {
-	panic(fmt.Errorf("not implemented"))
+	ids := obj.FriendIds
+	rr := make([]model.Character, len(ids))
+	for i, id := range ids {
+		s := r.datasource.humans[id]
+		rr[i] = &s
+	}
+
+	return rr, nil
 }
 
 func (r *humanResolver) FriendsConnection(ctx context.Context, obj *model.Human, first *int, after *string) (*model.FriendsConnection, error) {
@@ -52,7 +65,11 @@ func (r *mutationResolver) CreateReview(ctx context.Context, episode model.Episo
 }
 
 func (r *queryResolver) Hero(ctx context.Context, episode *model.Episode) (model.Character, error) {
-	panic(fmt.Errorf("not implemented"))
+	if episode != nil && *episode == model.EpisodeEmpire {
+		return r.datasource.humans["1000"], nil
+	}
+
+	return r.datasource.droid["2001"], nil
 }
 
 func (r *queryResolver) Reviews(ctx context.Context, episode model.Episode, since *time.Time) ([]*model.Review, error) {
@@ -68,7 +85,12 @@ func (r *queryResolver) Character(ctx context.Context, id string) (model.Charact
 }
 
 func (r *queryResolver) Droid(ctx context.Context, id string) (*model.Droid, error) {
-	panic(fmt.Errorf("not implemented"))
+	droid, found := r.datasource.droid[id]
+	if !found {
+		return nil, fmt.Errorf("not found")
+	}
+
+	return &droid, nil
 }
 
 func (r *queryResolver) Human(ctx context.Context, id string) (*model.Human, error) {

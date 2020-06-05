@@ -45,6 +45,10 @@ autobind:
 models:
   ReviewInput:
     model: model.Review
+  Human:
+    fields:
+      height:
+        resolver: true
   Starship:
     fields:
       length:
