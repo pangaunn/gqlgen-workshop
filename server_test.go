@@ -41,7 +41,7 @@ func TestQueryStarShip(t *testing.T) {
 		require.Equal(t, "X-Wing", resp.Starship.Name)
 	})
 
-	t.Run("length", func(t *testing.T) {
+	t.Run("length starship", func(t *testing.T) {
 		var resp struct {
 			Starship struct {
 				Name    string
